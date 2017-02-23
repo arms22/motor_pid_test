@@ -1,0 +1,76 @@
+#ifndef __PID__
+#define __PID__
+
+class PID
+{
+  public:
+    PID() {
+      _Kp = 1.f;
+      _Ki = 0.f;
+      _Kd = 0.f;
+      _dt = 0.1f;
+      _integral = _previous_output = _previous_error = 0;
+      _lowerLimit = -255;
+      _upperLimit =  255;
+    }
+
+    void setGain(float kp, float ki, float kd) {
+      _Kp = kp;
+      _Ki = ki;
+      _Kd = kd;
+    }
+
+    void setInterval(float sec) {
+      _dt = sec;
+    }
+
+    void setOutputLimits(float lowerLimit, float upperLimit)
+    {
+      _lowerLimit = lowerLimit;
+      _upperLimit = upperLimit;
+    }
+
+    // PID controller - Wikipedia
+    // https://en.wikipedia.org/wiki/PID_controller#Pseudocode
+
+    float process(float error)
+    {
+      float output, derivative;
+#if 0
+      _integral = _integral + (_Ki * error * _dt);
+      if (_integral <= _lowerLimit) _integral = _lowerLimit;
+      else if (_integral >= _upperLimit) _integral = _upperLimit;
+      derivative = (error - _previous_error) / _dt;
+      output = (_Kp * error) + _integral + (_Kd * derivative);
+      _previous_error = error;
+      _previous_output = output;
+      return constrain(output, _lowerLimit, _upperLimit);
+#else
+      if (_lowerLimit < _previous_output && _previous_output < _upperLimit) {
+        _integral = _integral + error * _dt;
+      }
+      derivative = (error - _previous_error) / _dt;
+      output = (_Kp * error) + (_Ki * _integral) + (_Kd * derivative);
+      _previous_error = error;
+      _previous_output = output;
+      return constrain(output, _lowerLimit, _upperLimit);
+#endif
+    }
+
+    void reset()
+    {
+      _integral = _previous_output = _previous_error = 0;
+    }
+
+  public:
+    float _previous_output;
+    float _integral;
+
+  private:
+    float _Kp, _Ki, _Kd, _dt;
+    float _previous_error;
+    float _lowerLimit, _upperLimit;
+};
+
+#endif
+
