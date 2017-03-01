@@ -36,16 +36,6 @@ class PID
     float process(float error)
     {
       float output, derivative;
-#if 0
-      _integral = _integral + (_Ki * error * _dt);
-      if (_integral <= _lowerLimit) _integral = _lowerLimit;
-      else if (_integral >= _upperLimit) _integral = _upperLimit;
-      derivative = (error - _previous_error) / _dt;
-      output = (_Kp * error) + _integral + (_Kd * derivative);
-      _previous_error = error;
-      _previous_output = output;
-      return constrain(output, _lowerLimit, _upperLimit);
-#else
       if (_lowerLimit < _previous_output && _previous_output < _upperLimit) {
         _integral = _integral + error * _dt;
       }
@@ -54,7 +44,6 @@ class PID
       _previous_error = error;
       _previous_output = output;
       return constrain(output, _lowerLimit, _upperLimit);
-#endif
     }
 
     void reset()

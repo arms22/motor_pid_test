@@ -32,6 +32,9 @@ PulseIn plsin1(enc1_A, enc1_B);
 Encoder enc0(enc0_A, enc0_B);
 Encoder enc1(enc1_A, enc1_B);
 
+PID pos0_tracking_p;
+PID pos1_tracking_p;
+
 PID m0_pid;
 PID m1_pid;
 
@@ -54,8 +57,8 @@ int tuning = 0;
 uint32_t pid_test = 0;
 void pid_process(void)
 {
-  float p0, p1, u0 = 0, u1 = 0, mv0, mv1;
-  int w0, w1, d0, d1, c0, c1, n0, n1;
+  float p0, p1, u0 = 0, u1 = 0, mv0, mv1, s0, s1;
+  int32_t w0, w1, d0, d1, c0, c1, n0, n1, i0, i1;
   pid_test++;
 
   // パルス幅と1秒辺りのパルス数を取得
@@ -66,26 +69,28 @@ void pid_process(void)
   p1 = plsin1.pulsePerSecond();
   c0 = enc0.count();
   d0 = enc0.delta();
+  i0 = enc0.direction();
   c1 = enc1.count();
   d1 = enc1.delta();
+  i1 = enc1.direction();
   interrupts();
 
-  //  if (n0 < 0) {
-  //    w0 *= -1;
-  //    p0 *= -1;
-  //  }
-  //  if (n1 < 0) {
-  //    w1 *= -1;
-  //    p1 *= -1;
-  //  }
+  // 回転方向を加える
+  w0 *= i0;
+  p0 *= i0;
+  w1 *= i1;
+  p1 *= i1;
 
   if (tuning) {
     // チューニング中は何もしない
   } else {
-    // フィードバック制御
     if (target0) {
-      u0 = m0_pid.process(((float)target0) - p0);
-      u1 = m1_pid.process(((float)target0) - p1);
+      // 位置フィードバックループ（片方のタイヤはもう一方のタイヤに追従させる）
+      s0 = pos0_tracking_p.process(target0 - c0);
+      s1 = pos0_tracking_p.process(c0 - c1);
+      // 速度フィードバックループ
+      u0 = m0_pid.process(s0 - p0);
+      u1 = m1_pid.process(s1 - p1);
       mv0 = m0_pid._previous_output;
       mv1 = m1_pid._previous_output;
       m0.go(u0);
@@ -97,8 +102,8 @@ void pid_process(void)
     Log stat = {
       micros(),
       {
-        { target0, p0, mv0, u0},
-        { target0, p1, mv1, u1},
+        { target0, c0, s0, p0, mv0, u0},
+        {      c0, c1, s1, p1, mv1, u1},
       },
     };
     plog.put(stat);
@@ -136,6 +141,13 @@ void setup() {
   plsin0.begin();
   plsin1.begin();
   TIME(plsin1.poll(), 1000);
+  // 位置制御PID初期化
+  pos0_tracking_p.setInterval(0.001);
+  pos1_tracking_p.setInterval(0.001);
+  pos0_tracking_p.setGain(10, 0, 0);
+  pos1_tracking_p.setGain(10, 0, 0);
+  pos0_tracking_p.setOutputLimits(-1400, 1400);
+  pos1_tracking_p.setOutputLimits(-1400, 1400);
   // PID制御初期化
   m0_pid.setInterval(0.001);
   m1_pid.setInterval(0.001);
@@ -213,8 +225,8 @@ void loop()
         m1_pid.reset();
         plsin0.reset();
         plsin1.reset();
-        target0 = 1200;
-        target1 = 1000;
+        target0 = 980;
+        target1 = 0;
         start_time = millis();
       } else {
         m0.stop();
