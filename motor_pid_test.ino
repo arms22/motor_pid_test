@@ -80,7 +80,8 @@ void pid_process(void)
   //  }
 
   if (tuning) {
-    // チューニング中は何もしない
+    m0.go(target0);
+    m1.go(target0);
   } else {
     // フィードバック制御
     if (target0) {
@@ -137,33 +138,33 @@ void setup() {
   plsin1.begin();
   TIME(plsin1.poll(), 1000);
   // PID制御初期化
-  m0_pid.setInterval(0.001);
-  m1_pid.setInterval(0.001);
+  m0_pid.setInterval(0.001F);
+  m1_pid.setInterval(0.001F);
   TIME(m0_pid.process(0), 1000);
   // ZN P
-  //  #define KP 3.74491
-  //  #define KI 0
-  //  #define KD 0
+  //  #define KP 3.74491F
+  //  #define KI 0.0F
+  //  #define KD 0.0F
 
   // ZN PI
-  //  #define KP 3.37042
-  //  #define KI 127.66741
-  //  #define KD 0
+  //  #define KP 3.37042F
+  //  #define KI 127.66741F
+  //  #define KD 0.0F
 
   // ZN PID
-  //  #define KP 4.49389
-  //  #define KI 280.86830
-  //  #define KD 0.01798
+  //  #define KP 4.49389F
+  //  #define KI 280.86830F
+  //  #define KD 0.01798F
 
   //CHR 0%
-#define KP 2.24695
-#define KI 54.80357
-#define KD 0.00899
+#define KP 2.24695F
+#define KI 54.80357F
+#define KD 0.00899F
 
   //CHR 20%
-  //  #define KP 3.55767
-  //  #define KI 64.27579
-  //  #define KD 0.01338
+  //  #define KP 3.55767F
+  //  #define KI 64.27579F
+  //  #define KD 0.01338F
 
   m0_pid.setGain(KP, KI, KD);
   m1_pid.setGain(KP, KI, KD);
@@ -175,6 +176,7 @@ void setup() {
 }
 
 uint32_t start_time = 0;
+uint32_t shift_change = 0;
 
 void loop()
 {
@@ -195,17 +197,16 @@ void loop()
   if ( btn.fallingEdge() ) {
     if (tuning) {
       if (target0 == 0) {
-        m0_pid.reset();
-        m1_pid.reset();
         plsin0.reset();
         plsin1.reset();
-        m0.go(1023);
-        m1.go(1023);
         target0 = 1023;
+        target1 = 0;
+        start_time = millis();
+        shift_change = 1000;
       } else {
         m0.stop();
         m1.stop();
-        target0 = 0;
+        target0 = target1 = 0;
       }
     } else {
       if (target0 == 0) {
@@ -216,6 +217,7 @@ void loop()
         target0 = 1200;
         target1 = 1000;
         start_time = millis();
+        shift_change = 1000;
       } else {
         m0.stop();
         m1.stop();
@@ -224,9 +226,9 @@ void loop()
     }
   }
 
-  if (target1 && (millis() - start_time > 1000)) {
+  if (shift_change && (millis() - start_time > shift_change)) {
     target0 = target1;
-    target1 = 0;
+    shift_change = 0;
   }
 }
 

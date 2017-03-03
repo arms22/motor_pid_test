@@ -1,6 +1,8 @@
 #ifndef __PID__
 #define __PID__
 
+#include <float.h>
+
 class PID
 {
   public:
@@ -10,8 +12,8 @@ class PID
       _Kd = 0.f;
       _dt = 0.1f;
       _integral = _previous_output = _previous_error = 0;
-      _lowerLimit = -255;
-      _upperLimit =  255;
+      _lowerLimit = FLT_MIN;
+      _upperLimit = FLT_MAX;
     }
 
     void setGain(float kp, float ki, float kd) {
@@ -36,16 +38,6 @@ class PID
     float process(float error)
     {
       float output, derivative;
-#if 0
-      _integral = _integral + (_Ki * error * _dt);
-      if (_integral <= _lowerLimit) _integral = _lowerLimit;
-      else if (_integral >= _upperLimit) _integral = _upperLimit;
-      derivative = (error - _previous_error) / _dt;
-      output = (_Kp * error) + _integral + (_Kd * derivative);
-      _previous_error = error;
-      _previous_output = output;
-      return constrain(output, _lowerLimit, _upperLimit);
-#else
       if (_lowerLimit < _previous_output && _previous_output < _upperLimit) {
         _integral = _integral + error * _dt;
       }
@@ -54,12 +46,11 @@ class PID
       _previous_error = error;
       _previous_output = output;
       return constrain(output, _lowerLimit, _upperLimit);
-#endif
     }
 
     void reset()
     {
-      _integral = _previous_output = _previous_error = 0;
+      _integral = _previous_output = _previous_error = 0.f;
     }
 
   public:
