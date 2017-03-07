@@ -66,18 +66,14 @@ void pid_process(void)
   p1 = plsin1.pulsePerSecond();
   c0 = enc0.count();
   d0 = enc0.delta();
+  n0 = enc0.direction();
   c1 = enc1.count();
   d1 = enc1.delta();
+  n1 = enc1.direction();
   interrupts();
 
-  //  if (n0 < 0) {
-  //    w0 *= -1;
-  //    p0 *= -1;
-  //  }
-  //  if (n1 < 0) {
-  //    w1 *= -1;
-  //    p1 *= -1;
-  //  }
+  p0 *= n0;
+  p1 *= n1;
 
   if (tuning) {
     m0.go(target0);
@@ -156,10 +152,15 @@ void setup() {
   //  #define KI 280.86830F
   //  #define KD 0.01798F
 
-  //CHR 0%
-#define KP 2.24695F
-#define KI 54.80357F
-#define KD 0.00899F
+  //CHR 0%（空転）
+  //#define KP 2.24695F
+  //#define KI 54.80357F
+  //#define KD 0.00899F
+
+  //CHR 0%（自走）
+#define KP 5.71824F
+#define KI 62.83784F
+#define KD 0.02287F
 
   //CHR 20%
   //  #define KP 3.55767F
@@ -202,7 +203,7 @@ void loop()
         target0 = 1023;
         target1 = 0;
         start_time = millis();
-        shift_change = 1000;
+        shift_change = 2000;
       } else {
         m0.stop();
         m1.stop();
@@ -214,10 +215,10 @@ void loop()
         m1_pid.reset();
         plsin0.reset();
         plsin1.reset();
-        target0 = 1200;
-        target1 = 1000;
+        target0 = 1000;
+        target1 = 10;
         start_time = millis();
-        shift_change = 1000;
+        shift_change = 2000;
       } else {
         m0.stop();
         m1.stop();
