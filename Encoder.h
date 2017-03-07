@@ -7,7 +7,7 @@ class Encoder {
     {
       _pinA = pina;
       _pinB = pinb;
-      _lastCount = _count = 0;
+      _direction = _lastCount = _count = 0;
     }
 
     void begin()
@@ -28,6 +28,7 @@ class Encoder {
       int num = dir_tbl[(_lastCode << 2) + code];
       if (num) {
         _count += num;
+        _direction = num;
       }
       _lastCode = code;
     }
@@ -44,10 +45,16 @@ class Encoder {
       return d;
     }
 
+    int direction()
+    {
+      return _direction;
+    }
+
   private:
     int32_t _count;
     int32_t _lastCount;
     int _lastCode;
+    int _direction;
     int _pinA;
     int _pinB;
 };
