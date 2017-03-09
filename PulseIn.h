@@ -72,7 +72,8 @@ static void input_capture_attach(int channel, int pin)
     // Configure the interrupt mode
     int cfg = in >> 3;
     int pos = (in & 0x7) << 2;
-    EIC->CONFIG[cfg].reg |= (EIC_CONFIG_SENSE0_RISE_Val | 0x8) << pos;
+    EIC->CONFIG[cfg].reg |= (EIC_CONFIG_SENSE0_RISE_Val | EIC_CONFIG_FILTEN0) << pos;
+    //EIC->CONFIG[cfg].reg |= (EIC_CONFIG_SENSE0_BOTH_Val | EIC_CONFIG_FILTEN0) << pos;
     //    Serial.println(cfg);
     //    Serial.println(pos);
     //    Serial.println(EIC->CONFIG[cfg].reg, HEX);
