@@ -55,14 +55,16 @@ uint32_t pid_test = 0;
 void pid_process(void)
 {
   float p0, p1, u0 = 0, u1 = 0, mv0, mv1;
-  int w0, w1, d0, d1, c0, c1, n0, n1;
+  int w0, w1, d0, d1, c0, c1, n0, n1, wa0, wa1;
   pid_test++;
 
   // パルス幅と1秒辺りのパルス数を取得
   noInterrupts();
   w0 = plsin0.pulseWidth();
+  wa0= plsin0.pulseWidthRaw();
   p0 = plsin0.pulsePerSecond();
   w1 = plsin1.pulseWidth();
+  wa1= plsin1.pulseWidthRaw();
   p1 = plsin1.pulsePerSecond();
   c0 = enc0.count();
   d0 = enc0.delta();
@@ -94,8 +96,8 @@ void pid_process(void)
     Log stat = {
       micros(),
       {
-        { target0, p0, mv0, u0},
-        { target0, p1, mv1, u1},
+        { target0, p0, mv0, u0, w0, wa0 },
+        { target0, p1, mv1, u1, w1, wa1 },
       },
     };
     plog.put(stat);
@@ -200,10 +202,10 @@ void loop()
       if (target0 == 0) {
         plsin0.reset();
         plsin1.reset();
-        target0 = 1023;
-        target1 = 0;
+        target0 = 400;
+        target1 = 200;
         start_time = millis();
-        shift_change = 2000;
+        shift_change = 1000;
       } else {
         m0.stop();
         m1.stop();
@@ -215,10 +217,10 @@ void loop()
         m1_pid.reset();
         plsin0.reset();
         plsin1.reset();
-        target0 = 1000;
-        target1 = 10;
+        target0 = 1200;
+        target1 =  800;
         start_time = millis();
-        shift_change = 2000;
+        shift_change = 1000;
       } else {
         m0.stop();
         m1.stop();
