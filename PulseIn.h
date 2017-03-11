@@ -95,10 +95,12 @@ static uint32_t input_capture_read(int channel)
   return CAPTURE_TCC->CC[channel].reg;
 }
 
-//static int input_capture_valid(int channel)
-//{
-//  return (CAPTURE_TCC->STATUS.reg & TCC_STATUS_CCBV(1 << channel));
-//}
+static uint32_t input_capture_count(void)
+{
+  CAPTURE_TCC->CTRLBSET.reg = TCC_CTRLBSET_CMD_READSYNC;
+  while (CAPTURE_TCC->SYNCBUSY.reg & TCC_SYNCBUSY_MASK);
+  return CAPTURE_TCC->COUNT.reg;
+}
 
 class PulseIn
 {
@@ -111,8 +113,6 @@ class PulseIn
 
     void begin()
     {
-      _lastTime = 0;
-      _pulseWidth = _err = 0;
       if (!_instance[0]) {
         _channel = 0;
         _instance[0] = this;
@@ -122,6 +122,9 @@ class PulseIn
       }
       input_capture_init();
       input_capture_attach(_channel, _pinA);
+
+      _lastTime = input_capture_count();
+      _pulseWidth = _pulseWidthRaw = 0;
     }
 
     void end()
@@ -131,8 +134,18 @@ class PulseIn
     void poll()
     {
       uint32_t t = input_capture_read(_channel);
-      _pulseWidth = (t - _lastTime) & 0xffffff;
+      _pulseWidthRaw = (t - _lastTime) & 0xffffff;
+      if (_pulseWidth == 0) {
+        _pulseWidth = _pulseWidthRaw;
+      }
+      _pulseWidth = _pulseWidth * 70 + _pulseWidthRaw * 30;
+      _pulseWidth = _pulseWidth / 100;
       _lastTime = t;
+    }
+
+    uint32_t pulseWidthRaw()
+    {
+      return (_pulseWidthRaw * 100) / 75;
     }
 
     uint32_t pulseWidth()
@@ -148,24 +161,18 @@ class PulseIn
       return 0;
     }
 
-    int error()
-    {
-      return _err;
-    }
-
     void reset()
     {
-      _lastTime = 0;
-      _pulseWidth = _err = 0;
+      _lastTime = input_capture_count();
+      _pulseWidth = _pulseWidthRaw = 0;
     }
 
     static PulseIn *_instance[2];
   private:
     int _pinA, _pinB;
     int _channel;
-    int _err;
     uint32_t _lastTime;
-    uint32_t _pulseWidth;
+    uint32_t _pulseWidth, _pulseWidthRaw;
 };
 
 PulseIn *PulseIn::_instance[2] = { 0, 0 };
